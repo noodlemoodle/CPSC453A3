@@ -5,7 +5,6 @@ in vec4 fragPosition;
 in vec3 fragEye;
 in vec3 fragNormal;
 in vec4 light;
-in vec3 ao;
 
 out vec4 FragmentColour;
 
@@ -19,12 +18,15 @@ uniform float d;
 uniform float illum;
 uniform vec3 lightPos;
 
+uniform int ao_bool;
+uniform int color_bool;
 
-uniform sampler2D tex;
+layout (location = 0) uniform sampler2D tex;
+layout (location = 1) uniform sampler2D ao;
 
 void main(void) {
 
-     vec3 light_ambient = Ka;
+     vec3 light_ambient = Ka; 
      vec3 diffuse_color = Kd;
      vec3 specular_color = Ks;
      float specular_power = Ns;
@@ -46,11 +48,24 @@ void main(void) {
 
      vec3 light = light_ambient + (diffuse_intensity * diffuse_color) + specular_color * pow(specular_weight, specular_power);
 
-     vec3 tex = texture(tex, textureCoords.xy).xyz;
+     vec3 color = texture(tex, textureCoords.xy).xyz;
+     vec3 ao = texture(ao, textureCoords.xy).xyz;
 
+
+     vec3 tex;
+
+     if(color_bool == 0 && ao_bool == 1) {
+          tex = ao;
+     } else if (color_bool == 1 && ao_bool == 0) {
+          tex = color;
+     } else if (color_bool == 1 && ao_bool == 1) {
+          vec3 tex0 = clamp(ao, 0.1, 0.9);
+          tex = vec3(tex0.x*color.x, tex0.y*color.y, tex0.z*color.z);
+     } else {
+          tex = vec3(0.5, 0.5, 0.5);
+     }
      vec3 colour = clamp(vec3(tex.x*light.x, tex.y*light.y, tex.z*light.z), 0.0, 1.0);
 
-     colour = clamp(colour + ao, 0, 1);
 
      FragmentColour = vec4(colour, 1.0);
 

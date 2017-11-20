@@ -3,7 +3,6 @@
 layout(location = 0) in vec4 windowCoord;
 layout(location = 1) in vec3 texCoord;
 layout(location = 2) in vec3 normCoord;
-layout(location = 3) in vec3 aoCoord;
 
 uniform mat4 mvp;
 uniform mat4 mM;
@@ -17,7 +16,6 @@ out vec4 fragPosition;
 out vec3 fragEye;
 out vec3 fragNormal;
 out vec4 light;
-out vec3 ao;
 
 void main()
 {
@@ -33,7 +31,6 @@ void main()
      fragPosition = pM * -eye;
      light = vec4((lightPos - windowCoord.xyz), 0.0);
 
-     ao = aoCoord;
 
      gl_Position = vec4((mvp*windowCoord).xyz, 1.0);
 
