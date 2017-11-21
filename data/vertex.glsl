@@ -25,11 +25,11 @@ void main()
 
      // to fragment shader
      textureCoords = texCoord;
-     vec4 eye = (mv * -vec4(windowCoord.xyz, 1.0));
+     vec4 eye = (inverse(vM) * -vec4(0.0, 0.0, 0.0, 1.0));
      fragEye = (mv * -vec4(windowCoord.xyz, 1.0)).xyz;
-     fragNormal = (mvinvtrans * vec4(normCoord, 0.0)).xyz;
-     fragPosition = pM * -eye;
-     light = vec4((lightPos - windowCoord.xyz), 0.0);
+     fragNormal = (vM*mM * vec4(normCoord, 0.0)).xyz;
+     fragPosition = vec4((mvp*windowCoord).xyz, 1.0);//pM * -eye;
+     light = vec4((lightPos - vec3(mM*windowCoord).xyz), 0.0);
 
 
      gl_Position = vec4((mvp*windowCoord).xyz, 1.0);

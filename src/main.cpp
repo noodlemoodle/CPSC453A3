@@ -32,7 +32,6 @@ vector<float> objVertices;
 vector<float> objTex;
 vector<float> objNorms;
 
-vector<float> textures;
 vector<float> vertices;
 
 float lookAtX = 0.0, lookAtY = 0.0, lookAtZ = 0.0;
@@ -393,18 +392,18 @@ bool initObj() {
 		float  xmax = xyBound[1], ymax = xyBound[3], xmin = xyBound[0], ymin = xyBound[2],
 			zmax = xyBound[5], zmin = xyBound[4], centerX = xyBound[6], centerY = xyBound[7], centerZ = xyBound[8];
 
-		scale = 1/fmax(fmax(xmax - xmin, ymax - ymin), zmax - zmin); //make xyz min max globals to reset
+		float ratio = fmax(fmax(xmax - xmin, ymax - ymin), zmax - zmin); //make xyz min max globals to reset
 
-		translateX = -centerX; //
-		translateY = -centerY;
-		translateZ = -centerZ;
+		// translateX = -centerX; //
+		// translateY = -centerY;
+		// translateZ = -centerZ;
 
 		// this should be done in the model matrix
-		// for(uint i = 0; i < objVertices.size(); i+=4) {
-		//  	objVertices[i] = ((objVertices[i] - centerX)/ratio);
-		//  	objVertices[i+1] = ((objVertices[i+1] - centerY)/ratio);
-		// 	objVertices[i+2] = ((objVertices[i+2] - centerZ)/ratio);
-		// }
+		for(uint i = 0; i < objVertices.size(); i+=4) {
+		 	objVertices[i] = ((objVertices[i] - centerX)/ratio);
+		 	objVertices[i+1] = ((objVertices[i+1] - centerY)/ratio);
+			objVertices[i+2] = ((objVertices[i+2] - centerZ)/ratio);
+		}
 
 		 xyBound = findBound(objVertices);
 		 cout<<xyBound[0]<<"\t"<<xyBound[1]<<"\t"<<xyBound[2]<<"\t"<<xyBound[3]<<"\t"<<xyBound[4]<<"\t"<<xyBound[5]<<"\t"<<xyBound[6]<<"\t"<<xyBound[7]<<"\t"<<xyBound[8]<<endl;
@@ -422,11 +421,8 @@ void render(GLuint pid, VertexArray va, GLuint* textures) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glUseProgram(pid);
-
 	glBindVertexArray(va.id);
-
 	glDrawArrays(GL_TRIANGLES, 0, va.count);
-
 	glBindVertexArray(0); //unbind
 	glUseProgram(0);
 
@@ -531,16 +527,16 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 
 	//camZ = (camZ + (float)yoffset >= 0) ? camZ + (float)yoffset : camZ; // FLIPS THE IMAGE AT SOME POINT, MAKING CAMX, CAMY BACKWARDS
-	//	translateZ += (float)yoffset*0.2;
+	translateZ += (float)yoffset*5;
 
-	// cout << "CURRENT" << endl;
-	// cout << "CAMERA POSITION: ("<< camX <<", "<< camY <<", "<< camZ <<")" << endl;
-	// cout << "LOOKING AT: (" << lookAtX << ", " << lookAtY << ", " << lookAtZ << ")" << endl;
-	// cout << "ZOOM = " << zoom << endl;
-	// cout << "UPSIDEDOWN = " << upsideDown << endl;
-	// cout << "OBJECT ROTATION IN X (ROLL): " << rollAngle << " degrees" << endl;
-	// cout << "OBJECT ROTATION IN Y (PITCH): " << pitchAngle << " degrees" << endl;
-	// cout << "OBJECT ROTATION IN Z (YAW): " << yawAngle << " degrees" << endl;
+	cout << "CURRENT" << endl;
+	cout << "CAMERA POSITION: ("<< camX <<", "<< camY <<", "<< camZ <<")" << endl;
+	cout << "LOOKING AT: (" << lookAtX << ", " << lookAtY << ", " << lookAtZ << ")" << endl;
+	cout << "ZOOM = " << zoom << endl;
+	cout << "UPSIDEDOWN = " << upsideDown << endl;
+	cout << "OBJECT ROTATION IN X (ROLL): " << rollAngle << " degrees" << endl;
+	cout << "OBJECT ROTATION IN Y (PITCH): " << pitchAngle << " degrees" << endl;
+	cout << "OBJECT ROTATION IN Z (YAW): " << yawAngle << " degrees" << endl;
 
 	// camZ = camZ + (float)yoffset * 2.0 - prevCamZ;
 	// prevCamZ = scroll*2.0;
