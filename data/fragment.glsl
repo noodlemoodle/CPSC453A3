@@ -21,8 +21,8 @@ uniform vec3 lightPos;
 uniform int ao_bool;
 uniform int color_bool;
 
-layout (location = 0) uniform sampler2D tex;
-layout (location = 1) uniform sampler2D ao;
+uniform sampler2D tex;
+uniform sampler2D ao;
 
 void main(void) {
 

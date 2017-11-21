@@ -383,9 +383,6 @@ bool initObj() {
 			}
 		}
 
-		// for (uint i = 0; i < objNorms.size(); i+=3) {
-		// 	cout<<objNorms[i]<<"\t"<<objNorms[i+1]<<"\t"<<objNorms[i+2]<<endl;
-		// }
 		vector<float> xyBound = findBound(objVertices);
 		cout<<xyBound[0]<<"\t"<<xyBound[1]<<"\t"<<xyBound[2]<<"\t"<<xyBound[3]<<"\t"<<xyBound[4]<<"\t"<<xyBound[5]<<"\t"<<xyBound[6]<<"\t"<<xyBound[7]<<"\t"<<xyBound[8]<<endl;
 
@@ -394,11 +391,6 @@ bool initObj() {
 
 		float ratio = fmax(fmax(xmax - xmin, ymax - ymin), zmax - zmin); //make xyz min max globals to reset
 
-		// translateX = -centerX; //
-		// translateY = -centerY;
-		// translateZ = -centerZ;
-
-		// this should be done in the model matrix
 		for(uint i = 0; i < objVertices.size(); i+=4) {
 		 	objVertices[i] = ((objVertices[i] - centerX)/ratio);
 		 	objVertices[i+1] = ((objVertices[i+1] - centerY)/ratio);
