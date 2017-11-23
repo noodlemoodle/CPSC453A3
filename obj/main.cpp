@@ -1,4 +1,4 @@
-
+// cpsc 453 assignment 3 qiyue zhang 10131658
 
 #include <iostream>
 #include <fstream>
@@ -31,11 +31,8 @@ unsigned char* pixels2;
 vector<float> objVertices;
 vector<float> objTex;
 vector<float> objNorms;
-vector<float> materials;
 
 vector<float> vertices;
-
-glm::mat4 T, M, V, P;
 
 float lookAtX = 0.0, lookAtY = 0.0, lookAtZ = 0.0;
 float camX = 5.0, camY = 5.0, camZ = 5.0;
@@ -49,8 +46,7 @@ double prevCamX = 0.4, prevCamY = 0.4, prevCamZ = 0.4;
 float rollAngle = 0, pitchAngle = 0, yawAngle = 0;
 float translateX = 0.0, translateY = 0.0, translateZ = 0.0;
 float scale = 1.0;
-float objScale = 1.0;
-float cx = 0, cy = 0, cz = 0;
+
 //bool mouseButtonPressed = false;
 bool closeWindow = false;
 bool rightPress = false;
@@ -61,14 +57,14 @@ int color = 1;
 int ao = 1;
 
 //donut materials
-// float Ns = 96.078431;
-// vector<float> Ka = {0.8, 0.8, 0.8};
-// vector<float> Kd = {0.64, 0.64, 0.64};
-// vector<float> Ks = {0.5, 0.5, 0.5};
-// vector<float> Ke = {0.0, 0.0, 0.0};
-// float Ni = 1.0;
-// float d = 1.0;
-// float illum = 2.0;
+float Ns = 96.078431;
+vector<float> Ka = {0.8, 0.8, 0.8};
+vector<float> Kd = {0.64, 0.64, 0.64};
+vector<float> Ks = {0.5, 0.5, 0.5};
+vector<float> Ke = {0.0, 0.0, 0.0};
+float Ni = 1.0;
+float d = 1.0;
+float illum = 2.0;
 
 bool CheckGLErrors();
 
@@ -255,52 +251,6 @@ struct Texture {
 
 }tex1, ao1;
 
-vector<float> readMTL(string f) {
-	if(f.empty()) {
-		cerr << "ERROR: blank filename" << endl;
-		exit(0);
-	}
-	// try to open the file
-	ifstream file;
-	file.open( f, fstream::in );
-	// didn't work? fail!
-	if ( file.fail() ) {
-		cerr << "ERROR: OBJmodel: Couldn't load \"" << f << "\"." << endl;
-		exit(0);
-	}
-	string buffer = "";
-	string line;
-	vector<float> mtl;
-	int lineNum = 0;
-	while( file.good() ) {
-		getline( file, line );	// while we have data, read in a line
-		if(lineNum >= 4 && lineNum <= 12) {
-			switch( line[0] ) {
-				case 'i':
-					buffer += line.substr(6) + " ";
-					lineNum++;
-					continue;
-				case 'd':
-					buffer += line.substr(2) + " ";
-					lineNum++;
-					break;
-				default:
-					buffer += line.substr(3) + " "; lineNum++; continue;
-			}
-		}
-		lineNum++;
-	}
-
-	istringstream iss(buffer);
-	for (int i = 0; i < 16; i++ ) {
-		float mtlVal;
-		iss >> mtlVal;
-		mtl.push_back(mtlVal);
-	}
-
-	return mtl;
-}
-
 vector<float> findBound(vector<float> v) {
 	float tempMaxX = 0;
 	float tempMinX = 0;
@@ -375,8 +325,41 @@ void initTextures(string f1, string f2, GLuint* textures, GLuint pid) {
 	glBindTextures(GL_TEXTURE_2D, 2, 0);
 }
 
-bool initObj(string objFile) {
-	if(!om.load(objFile)) {
+// UNUSED FUNCTION
+void initTexture(string filename, GLuint pid) {
+
+	stbi_set_flip_vertically_on_load(true);
+	pixels = stbi_load(filename.c_str(), &tex1.w, &tex1.h, &tex1.channels, 0);
+
+	GLint colorLoc = glGetUniformLocation(pid, "tex");
+	glUniform1i(colorLoc, 0);
+
+	int width = tex1.w; int height = tex1.h; int channels = tex1.channels;
+	cout<<"width\t"<<width<<"\theight\t"<<height<<"\tchannels\t"<<channels<<endl;
+
+	tex1.type = GL_TEXTURE_2D;
+
+	GLuint f1 = tex1.channels == 3 ? GL_RGB8 : GL_RGBA8;
+	GLuint f2 = tex1.channels == 3 ? GL_RGB : GL_RGBA;
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, tex1.id);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, f1, tex1.w, tex1.h, 0, f2, GL_UNSIGNED_BYTE, pixels);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	stbi_image_free(pixels);
+
+	cout << "... texture loaded ..." << endl;
+}
+
+bool initObj() {
+	if(!om.load("donut.obj")) {
 		cout<<"failed"<<endl;
 		return false;
 	} else {
@@ -388,7 +371,7 @@ bool initObj(string objFile) {
 				objVertices.push_back(om[tri].vertex[vert].pos.x);
 				objVertices.push_back(om[tri].vertex[vert].pos.y);
 				objVertices.push_back(om[tri].vertex[vert].pos.z);
-				objVertices.push_back(0);
+				objVertices.push_back(om[tri].vertex[vert].pos.w);
 
 				objTex.push_back(om[tri].vertex[vert].tex.s);
 				objTex.push_back(om[tri].vertex[vert].tex.t);
@@ -402,52 +385,23 @@ bool initObj(string objFile) {
 
 		vector<float> xyBound = findBound(objVertices);
 		cout<<xyBound[0]<<"\t"<<xyBound[1]<<"\t"<<xyBound[2]<<"\t"<<xyBound[3]<<"\t"<<xyBound[4]<<"\t"<<xyBound[5]<<"\t"<<xyBound[6]<<"\t"<<xyBound[7]<<"\t"<<xyBound[8]<<endl;
-		//
-		// float  xmax = xyBound[1], ymax = xyBound[3], xmin = xyBound[0], ymin = xyBound[2],
-		// 	zmax = xyBound[5], zmin = xyBound[4], centerX = xyBound[6], centerY = xyBound[7], centerZ = xyBound[8];
-		//
-		// float ratio = fmax(fmax(xmax - xmin, ymax - ymin), zmax - zmin); //make xyz min max globals to reset
-		//
-		// for(uint i = 0; i < objVertices.size(); i+=4) {
-		//  	objVertices[i] = ((objVertices[i] - centerX)/ratio);
-		//  	objVertices[i+1] = ((objVertices[i+1] - centerY)/ratio);
-		// 	objVertices[i+2] = ((objVertices[i+2] - centerZ)/ratio);
-		// }
-		//
-		//  xyBound = findBound(objVertices);
-		//  cout<<xyBound[0]<<"\t"<<xyBound[1]<<"\t"<<xyBound[2]<<"\t"<<xyBound[3]<<"\t"<<xyBound[4]<<"\t"<<xyBound[5]<<"\t"<<xyBound[6]<<"\t"<<xyBound[7]<<"\t"<<xyBound[8]<<endl;
+
+		float  xmax = xyBound[1], ymax = xyBound[3], xmin = xyBound[0], ymin = xyBound[2],
+			zmax = xyBound[5], zmin = xyBound[4], centerX = xyBound[6], centerY = xyBound[7], centerZ = xyBound[8];
+
+		float ratio = fmax(fmax(xmax - xmin, ymax - ymin), zmax - zmin); //make xyz min max globals to reset
+
+		for(uint i = 0; i < objVertices.size(); i+=4) {
+		 	objVertices[i] = ((objVertices[i] - centerX)/ratio);
+		 	objVertices[i+1] = ((objVertices[i+1] - centerY)/ratio);
+			objVertices[i+2] = ((objVertices[i+2] - centerZ)/ratio);
+		}
+
+		 xyBound = findBound(objVertices);
+		 cout<<xyBound[0]<<"\t"<<xyBound[1]<<"\t"<<xyBound[2]<<"\t"<<xyBound[3]<<"\t"<<xyBound[4]<<"\t"<<xyBound[5]<<"\t"<<xyBound[6]<<"\t"<<xyBound[7]<<"\t"<<xyBound[8]<<endl;
 		return true;
 	}
 
-
-}
-
-void bindMaterials(GLuint pid, string mtlFile) {
-	glUseProgram(pid);
-	materials = readMTL(mtlFile);
-	GLint nsLoc = glGetUniformLocation(pid, "Ns");
-	glUniform1f(nsLoc, materials[0]);
-
-	GLint kaLoc = glGetUniformLocation(pid, "Ka");
-	glUniform3f(kaLoc, materials[1], materials[2], materials[3]);
-
-	GLint kdLoc = glGetUniformLocation(pid, "Kd");
-	glUniform3f(kdLoc, materials[4], materials[5], materials[6]);
-
-	GLint ksLoc = glGetUniformLocation(pid, "Ks");
-	glUniform3f(ksLoc, materials[7], materials[8], materials[9]);
-
-	GLint keLoc = glGetUniformLocation(pid, "Ke");
-	glUniform3f(keLoc, materials[10], materials[11], materials[12]);
-
-	GLint niLoc = glGetUniformLocation(pid, "Ni");
-	glUniform1f(niLoc, materials[13]);
-
-	GLint dLoc = glGetUniformLocation(pid, "d");
-	glUniform1f(dLoc, materials[14]);
-
-	GLint illumLoc = glGetUniformLocation(pid, "illum");
-	glUniform1f(illumLoc, materials[15]);
 
 }
 
@@ -487,7 +441,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		ao = 1; color = 1;
 		camX = 5; camY = 5; camZ = 5; zoom = 90; upsideDown = false;
 		rollAngle = 0; pitchAngle = 0; yawAngle = 0; scale = 1.0; translateX = 0; translateY = 0, translateZ = 0; //THESE SHOULDNT BE 0 (TRANS AND SCALE)
-		lightPos[0] = 0.0; lightPos[1] = 0.0; lightPos[2] = 0.0;
+		lightPos[0] = 5.0; lightPos[1] = 5.0; lightPos[2] = 5.0;
 	}
 
 	// toggle texture mappings
@@ -496,18 +450,12 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	if (key == GLFW_KEY_F3 && action == GLFW_PRESS) { ao = (ao == 1) ? 0 : 1; color = (color == 1) ? 0 : 1; }
 
 	// perspective viewing controls
-	if (key == GLFW_KEY_Q && (action == GLFW_REPEAT || action == GLFW_PRESS)) camX += upsideDown ? -0.5 : 0.5;
-    	if (key == GLFW_KEY_W && (action == GLFW_REPEAT || action == GLFW_PRESS)) camY += upsideDown ? -0.5 : 0.5;
-     if (key == GLFW_KEY_E && (action == GLFW_REPEAT || action == GLFW_PRESS)) camZ += upsideDown ? -0.5 : 0.5;
-	if (key == GLFW_KEY_A && (action == GLFW_REPEAT || action == GLFW_PRESS)) camX -= upsideDown ? -0.5 : 0.5;
-	if (key == GLFW_KEY_S && (action == GLFW_REPEAT || action == GLFW_PRESS)) camY -= upsideDown ? -0.5 : 0.5;
-	if (key == GLFW_KEY_D && (action == GLFW_REPEAT || action == GLFW_PRESS)) camZ -= upsideDown ? -0.5 : 0.5;
-	if (key == GLFW_KEY_I && (action == GLFW_REPEAT || action == GLFW_PRESS)) lookAtX += upsideDown ? -0.5 : 0.5;
-	if (key == GLFW_KEY_O && (action == GLFW_REPEAT || action == GLFW_PRESS)) lookAtY += upsideDown ? -0.5 : 0.5;
-	if (key == GLFW_KEY_P && (action == GLFW_REPEAT || action == GLFW_PRESS)) lookAtZ += upsideDown ? -0.5 : 0.5;
-	if (key == GLFW_KEY_J && (action == GLFW_REPEAT || action == GLFW_PRESS)) lookAtX -= upsideDown ? -0.5 : 0.5;
-	if (key == GLFW_KEY_K && (action == GLFW_REPEAT || action == GLFW_PRESS)) lookAtY -= upsideDown ? -0.5 : 0.5;
-	if (key == GLFW_KEY_L && (action == GLFW_REPEAT || action == GLFW_PRESS)) lookAtZ -= upsideDown ? -0.5 : 0.5;
+     if (key == GLFW_KEY_Q && (action == GLFW_REPEAT || action == GLFW_PRESS)) camX += upsideDown ? -5.0 : 5.0;
+    	if (key == GLFW_KEY_W && (action == GLFW_REPEAT || action == GLFW_PRESS)) camY += upsideDown ? -5.0 : 5.0;
+     if (key == GLFW_KEY_E && (action == GLFW_REPEAT || action == GLFW_PRESS)) camZ += upsideDown ? -5.0 : 5.0;
+	if (key == GLFW_KEY_A && (action == GLFW_REPEAT || action == GLFW_PRESS)) camX -= upsideDown ? -5.0 : 5.0;
+	if (key == GLFW_KEY_S && (action == GLFW_REPEAT || action == GLFW_PRESS)) camY -= upsideDown ? -5.0 : 5.0;
+	if (key == GLFW_KEY_D && (action == GLFW_REPEAT || action == GLFW_PRESS)) camZ -= upsideDown ? -5.0 : 5.0;
 	if (key == GLFW_KEY_F && (action == GLFW_REPEAT || action == GLFW_PRESS)) zoom = zoom + 5.0 < 165.0 ? zoom + 5.0 : zoom;
 	if (key == GLFW_KEY_R && (action == GLFW_REPEAT || action == GLFW_PRESS)) zoom = zoom - 5.0 > 25.0 ? zoom - 5.0 : zoom;
 	if (key == GLFW_KEY_CAPS_LOCK && action == GLFW_PRESS) upsideDown = upsideDown?false:true;
@@ -541,12 +489,12 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	if (key == GLFW_KEY_LEFT && (action == GLFW_REPEAT || action == GLFW_PRESS)) translateX -= 0.2;
 
 	// light positioning
-	if (key == GLFW_KEY_INSERT && (action == GLFW_REPEAT || action == GLFW_PRESS)) lightPos[0] += 1.0;
-	if (key == GLFW_KEY_HOME && (action == GLFW_REPEAT || action == GLFW_PRESS)) lightPos[1] += 1.0;
-	if (key == GLFW_KEY_PAGE_UP && (action == GLFW_REPEAT || action == GLFW_PRESS)) lightPos[2] += 1.0;
-	if (key == GLFW_KEY_DELETE && (action == GLFW_REPEAT || action == GLFW_PRESS)) lightPos[0] -= 1.0;
-	if (key == GLFW_KEY_END && (action == GLFW_REPEAT || action == GLFW_PRESS)) lightPos[1] -= 1.0;
-	if (key == GLFW_KEY_PAGE_DOWN && (action == GLFW_REPEAT || action == GLFW_PRESS)) lightPos[2] -= 1.0;
+	if (key == GLFW_KEY_INSERT && (action == GLFW_REPEAT || action == GLFW_PRESS)) lightPos[0] += 5.0;
+	if (key == GLFW_KEY_HOME && (action == GLFW_REPEAT || action == GLFW_PRESS)) lightPos[1] += 5.0;
+	if (key == GLFW_KEY_PAGE_UP && (action == GLFW_REPEAT || action == GLFW_PRESS)) lightPos[2] += 5.0;
+	if (key == GLFW_KEY_DELETE && (action == GLFW_REPEAT || action == GLFW_PRESS)) lightPos[0] -= 5.0;
+	if (key == GLFW_KEY_END && (action == GLFW_REPEAT || action == GLFW_PRESS)) lightPos[1] -= 5.0;
+	if (key == GLFW_KEY_PAGE_DOWN && (action == GLFW_REPEAT || action == GLFW_PRESS)) lightPos[2] -= 5.0;
 
 	// display
 	cout << "CURRENT" << endl;
@@ -559,7 +507,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	cout << "OBJECT ROTATION IN Y (PITCH): " << pitchAngle << " degrees" << endl;
 	cout << "OBJECT ROTATION IN Z (YAW): " << yawAngle << " degrees" << endl;
 	cout << "OBJECT TRANSLATION IN X: " << translateX << endl;
-	cout << "OBJECT TRANSLATION IN Y: " << translateY << endl;
+	cout << "OBJECVT TRANSLATION IN Y: " << translateY << endl;
 	cout << "OBJECT TRANSLATION IN Z: " << translateZ << endl;
 	cout << "OBJECT SCALING: " << scale << endl;
 	cout << "AMBIENT OCCLUSION APPLIED: " << ao << endl;
@@ -567,57 +515,90 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 }
 
-glm::mat4 getT() {
-	vector<float> v = findBound(objVertices);
-	cx = v[6]; cy = v[7]; cz = v[8];
-	float xmin = v[0], xmax = v[1], ymin = v[2], ymax = v[3], zmin = v[4], zmax = v[5];
+// UNUSED FUNCTION
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 
-	objScale = 1/fmax(fmax(xmax - xmin, ymax - ymin), zmax - zmin);
-	glm::mat4 Scale = glm::scale(glm::mat4(1.0f), glm::vec3(objScale, objScale, objScale));
-	glm::mat4 Translate = glm::translate(glm::mat4(1.0f), glm::vec3(-cx, -cy, -cz));
-	glm::mat4 RotateX = glm::rotate(glm::mat4(1.0f), rollAngle, glm::vec3(1, 0, 0));
-	glm::mat4 RotateY = glm::rotate(glm::mat4(1.0f), pitchAngle, glm::vec3(0, 1, 0));
-	glm::mat4 RotateZ = glm::rotate(glm::mat4(1.0f), yawAngle, glm::vec3(0, 0, 1));
+	//camZ = (camZ + (float)yoffset >= 0) ? camZ + (float)yoffset : camZ; // FLIPS THE IMAGE AT SOME POINT, MAKING CAMX, CAMY BACKWARDS
+	translateZ += (float)yoffset*5;
 
-	// print matrices
-		// cout<<"SCALE"<<endl;
-		// cout<<Scale[0][0]<<"\t"<<Scale[1][0]<<"\t"<<Scale[2][0]<<"\t"<<Scale[3][0]<<endl
-		// 	<<Scale[0][1]<<"\t"<<Scale[1][1]<<"\t"<<Scale[2][1]<<"\t"<<Scale[3][1]<<endl
-		// 	<<Scale[0][2]<<"\t"<<Scale[1][2]<<"\t"<<Scale[2][2]<<"\t"<<Scale[3][2]<<endl
-		// 	<<Scale[0][3]<<"\t"<<Scale[1][3]<<"\t"<<Scale[2][3]<<"\t"<<Scale[3][3]<<endl;
-		//
-		// cout<<"ROTATE X"<<"\t"<<rollAngle<<endl;
-		// cout<<RotateX[0][0]<<"\t"<<RotateX[1][0]<<"\t"<<RotateX[2][0]<<"\t"<<RotateX[3][0]<<endl
-		// 	<<RotateX[0][1]<<"\t"<<RotateX[1][1]<<"\t"<<RotateX[2][1]<<"\t"<<RotateX[3][1]<<endl
-		// 	<<RotateX[0][2]<<"\t"<<RotateX[1][2]<<"\t"<<RotateX[2][2]<<"\t"<<RotateX[3][2]<<endl
-		// 	<<RotateX[0][3]<<"\t"<<RotateX[1][3]<<"\t"<<RotateX[2][3]<<"\t"<<RotateX[3][3]<<endl;
-		//
-		// cout<<"ROTATE Y"<<"\t"<<pitchAngle<<endl;
-		// cout<<RotateY[0][0]<<"\t"<<RotateY[1][0]<<"\t"<<RotateY[2][0]<<"\t"<<RotateY[3][0]<<endl
-		// 	<<RotateY[0][1]<<"\t"<<RotateY[1][1]<<"\t"<<RotateY[2][1]<<"\t"<<RotateY[3][1]<<endl
-		// 	<<RotateY[0][2]<<"\t"<<RotateY[1][2]<<"\t"<<RotateY[2][2]<<"\t"<<RotateY[3][2]<<endl
-		// 	<<RotateY[0][3]<<"\t"<<RotateY[1][3]<<"\t"<<RotateY[2][3]<<"\t"<<RotateY[3][3]<<endl;
-		//
-		// cout<<"ROTATE Z"<<"\t"<<yawAngle<<endl;
-		// cout<<RotateZ[0][0]<<"\t"<<RotateZ[1][0]<<"\t"<<RotateZ[2][0]<<"\t"<<RotateZ[3][0]<<endl
-		// 	<<RotateZ[0][1]<<"\t"<<RotateZ[1][1]<<"\t"<<RotateZ[2][1]<<"\t"<<RotateZ[3][1]<<endl
-		// 	<<RotateZ[0][2]<<"\t"<<RotateZ[1][2]<<"\t"<<RotateZ[2][2]<<"\t"<<RotateZ[3][2]<<endl
-		// 	<<RotateZ[0][3]<<"\t"<<RotateZ[1][3]<<"\t"<<RotateZ[2][3]<<"\t"<<RotateZ[3][3]<<endl;
-		//
-		// cout<<"TRANSLATE"<<endl;
-		// cout<<Translate[0][0]<<"\t"<<Translate[1][0]<<"\t"<<Translate[2][0]<<"\t"<<Translate[3][0]<<endl
-		// 	<<Translate[0][1]<<"\t"<<Translate[1][1]<<"\t"<<Translate[2][1]<<"\t"<<Translate[3][1]<<endl
-		// 	<<Translate[0][2]<<"\t"<<Translate[1][2]<<"\t"<<Translate[2][2]<<"\t"<<Translate[3][2]<<endl
-		// 	<<Translate[0][3]<<"\t"<<Translate[1][3]<<"\t"<<Translate[2][3]<<"\t"<<Translate[3][3]<<endl;
+	cout << "CURRENT" << endl;
+	cout << "CAMERA POSITION: ("<< camX <<", "<< camY <<", "<< camZ <<")" << endl;
+	cout << "LOOKING AT: (" << lookAtX << ", " << lookAtY << ", " << lookAtZ << ")" << endl;
+	cout << "ZOOM = " << zoom << endl;
+	cout << "UPSIDEDOWN = " << upsideDown << endl;
+	cout << "OBJECT ROTATION IN X (ROLL): " << rollAngle << " degrees" << endl;
+	cout << "OBJECT ROTATION IN Y (PITCH): " << pitchAngle << " degrees" << endl;
+	cout << "OBJECT ROTATION IN Z (YAW): " << yawAngle << " degrees" << endl;
 
-	glm::mat4 Transform = Scale*RotateZ*RotateY*RotateX*Translate;
-	return Transform;
+	// camZ = camZ + (float)yoffset * 2.0 - prevCamZ;
+	// prevCamZ = scroll*2.0;
+
+	// if(zoom-yoffset*5.0<95.0&&zoom-yoffset*5.0>25.0){
+	// 	zoom -= (float)yoffset*5.0;
+	// }
+}
+
+void mouse_callback(GLFWwindow* window, int button, int action, int mods) {
+	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+ 		leftPress = true;
+ 	} else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
+ 		leftPress = false;
+     }
+	if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+		rightPress = true;
+	} else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE) {
+		rightPress = false;
+	}
+
+
+	cout << "CURRENT" << endl;
+	cout << "CAMERA POSITION: ("<< camX <<", "<< camY <<", "<< camZ <<")" << endl;
+	cout << "LOOKING AT: (" << lookAtX << ", " << lookAtY << ", " << lookAtZ << ")" << endl;
+	cout << "LIGHT POSITION: (" << lightPos[0] << ", " << lightPos[1] << ", " << lightPos[2] << ")" << endl;
+	cout << "ZOOM = " << zoom << endl;
+	cout << "UPSIDEDOWN = " << upsideDown << endl;
+	cout << "OBJECT ROTATION IN X (ROLL): " << rollAngle << " degrees" << endl;
+	cout << "OBJECT ROTATION IN Y (PITCH): " << pitchAngle << " degrees" << endl;
+	cout << "OBJECT ROTATION IN Z (YAW): " << yawAngle << " degrees" << endl;
+	cout << "AMBIENT OCCLUSION APPLIED: " << ao << endl;
+	cout << "COLOR APPLIED: " << color << endl;
+}
+
+// UNUSED FUNCTION
+void cursor_callback(GLFWwindow* window, double xpos, double ypos) {
+	// if(mouseButtonPressed) {
+	//
+     //    	camX = upsideDown ? camX + (xpos/50) - prevCamX : camX - (xpos/50) + prevCamX;
+	// 	camY = upsideDown ? camY - (ypos/50) + prevCamY : camY + (ypos/50) - prevCamY;
+ //   	}
+ //  	prevCamX = xpos/50;
+ //  	prevCamY = ypos/50;
+	//
+	// if (leftPress && !rightPress) {
+	// 	rollAngle = ((rollAngle + 2)%360);
+	// } else if (!leftPress && rightPress) {
+	// 	pitchAngle = ((pitchAngle + 2)%360);
+	// } else {
+	// 	yawAngle = ((yawAngle + 2)%360);
+	// }
+
 }
 
 glm::mat4 getM() {
+	float yaw [16] = {cos(yawAngle), -sin(yawAngle), 0, 0, sin(yawAngle), cos(yawAngle), 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+	float pitch [16] = {cos(pitchAngle), 0, sin(pitchAngle), 0, 0, 1, 0, 0, -sin(pitchAngle), 0, cos(pitchAngle), 0, 0, 0, 0, 1};
+	float roll [16] = {1, 0, 0, 0, 0, cos(rollAngle), -sin(rollAngle), 0, 0, sin(rollAngle), cos(rollAngle), 0, 0, 0, 0, 1};
+	float translate [16] = {1, 0, 0, translateX, 0, 1, 0, translateY, 0, 0, 1, translateZ, 0, 0, 0, 1};
+
 	glm::mat4 Scale = glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale));
-	glm::mat4 Translate = glm::translate(glm::mat4(1.0f), glm::vec3(translateX, translateY, translateZ));
-	return Scale*Translate;
+	glm::mat4 RotateX = glm::make_mat4(roll);
+	glm::mat4 RotateY = glm::make_mat4(pitch);
+	glm::mat4 RotateZ = glm::make_mat4(yaw);
+	glm::mat4 Translate = glm::make_mat4(translate);
+
+	glm::mat4 Transform = Translate*RotateZ*RotateY*RotateX*Scale;
+
+	return Transform*glm::mat4(1.0f);
 }
 
 glm::mat4 getV() {
@@ -626,20 +607,39 @@ glm::mat4 getV() {
 }
 
 glm::mat4 getP() {
-	return glm::perspective(glm::radians(zoom), (float)((float)windowWidth/(float)windowHeight), 0.1f, 100.0f);
+	return glm::perspective(glm::radians(zoom), 1.0f, 0.1f, 100.0f);
 }
 
-int main( const int argc, const char** argv ) {
+// UNUSED FUNCTION
+glm::mat4 getMVP() {
 
-	if (argc != 5) {
+	up = upsideDown? -1.0 : 1.0;
 
-		cout << " USAGE: " << argv[0] << " [objFile.obj] [objColor.png] [objAo.png] [objMaterials.mtl] " << endl;
-		return 1;
-	}
-	for(uint i = 0; i < 4; i++) {
-		cout << "- Loading " << argv[i+1] << "..";
-	}
+	float yaw [16] = {cos(yawAngle), -sin(yawAngle), 0, 0, sin(yawAngle), cos(yawAngle), 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+	float pitch [16] = {cos(pitchAngle), 0, sin(pitchAngle), 0, 0, 1, 0, 0, -sin(pitchAngle), 0, cos(pitchAngle), 0, 0, 0, 0, 1};
+	float roll [16] = {1, 0, 0, 0, 0, cos(rollAngle), -sin(rollAngle), 0, 0, sin(rollAngle), cos(rollAngle), 0, 0, 0, 0, 1};
+	float translate [16] = {1, 0, 0, translateX, 0, 1, 0, translateY, 0, 0, 1, translateZ, 0, 0, 0, 1};
 
+     glm::mat4 Scale = glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale));
+	glm::mat4 RotateX = glm::make_mat4(roll);
+	glm::mat4 RotateY = glm::make_mat4(pitch);
+	glm::mat4 RotateZ = glm::make_mat4(yaw);
+	glm::mat4 Translate = glm::make_mat4(translate);
+
+	glm::mat4 Transform = Translate*RotateZ*RotateY*RotateX*Scale;
+
+	glm::mat4 P = glm::perspective(glm::radians(zoom), (float)(windowWidth/windowHeight), 0.1f, 100.0f);
+	glm::mat4 V = glm::lookAt(glm::vec3(camX, camY, camZ), glm::vec3(lookAtX, lookAtY, lookAtZ), glm::vec3(0.0, up, 0.0));
+	glm::mat4 M = Transform*glm::mat4(1.0f);
+
+	glm::mat4 mvp = P*V*M;
+
+	glm::vec4 v = mvp*glm::vec4(0, 0, 0, 1);
+
+ 	return mvp;
+}
+
+int main(int argc, const char** argv) {
 
 	if (!glfwInit()) {
 			cout << "ERROR: GLFW failed to initialize, TERMINATING" << endl;
@@ -661,6 +661,10 @@ int main( const int argc, const char** argv ) {
 	}
 
 	glfwMakeContextCurrent(window);
+
+	glfwSetScrollCallback(window, scroll_callback);
+	glfwSetMouseButtonCallback(window, mouse_callback);
+	glfwSetCursorPosCallback(window, cursor_callback);
 	glfwSetKeyCallback(window, key_callback);
 
 	Program p("data/vertex.glsl", "data/fragment.glsl");
@@ -668,58 +672,24 @@ int main( const int argc, const char** argv ) {
 	// initTexture("donutColorPlain.png", p.id);
 	// readAo("donutAo.png", p.id);
 	GLuint textures[2];
-	initTextures(argv[2], argv[3], textures, p.id);
-	initObj(argv[1]);
-	bindMaterials(p.id, argv[4]);
-	//
-	// GLint nsLoc = glGetUniformLocation(p.id, "Ns");
-	// glUniform1f(nsLoc, Ns);
-	//
-	// GLint kaLoc = glGetUniformLocation(p.id, "Ka");
-	// glUniform3f(kaLoc, Ka[0], Ka[1], Ka[2]);
-	//
-	// GLint kdLoc = glGetUniformLocation(p.id, "Kd");
-	// glUniform3f(kdLoc, Kd[0], Kd[1], Kd[2]);
-	//
-	// GLint ksLoc = glGetUniformLocation(p.id, "Ks");
-	// glUniform3f(ksLoc, Ks[0], Ks[1], Ks[2]);
-	//
-	// GLint keLoc = glGetUniformLocation(p.id, "Ke");
-	// glUniform3f(keLoc, Ke[0], Ke[1], Ke[2]);
-	//
-	// GLint niLoc = glGetUniformLocation(p.id, "Ni");
-	// glUniform1f(niLoc, Ni);
-	//
-	// GLint dLoc = glGetUniformLocation(p.id, "d");
-	// glUniform1f(dLoc, d);
-	//
-	// GLint illumLoc = glGetUniformLocation(p.id, "illum");
-	// glUniform1f(illumLoc, illum);
-
-
+	initTextures("donutColorPlain.png", "donutAo.png", textures, p.id);
+	initObj();
 
 	while(!glfwWindowShouldClose(window)) {
 
 		glfwGetWindowSize(window, &windowWidth, &windowHeight);
 		glViewport(0, 0, windowWidth, windowHeight);
 
-		T = getT();
-		M = getM();
-		V = getV();
-		P = getP();
+		glm::mat4 M = getM();
+		glm::mat4 V = getV();
+		glm::mat4 P = getP();
 
-		glm::mat4 mvp = P*V*M*T;
+		glm::mat4 mvp = P*M*V;
 
 		glUseProgram(p.id);
 
-		GLint lightLoc = glGetUniformLocation(p.id, "lightPos");
-		glUniform3f(lightLoc, lightPos.x, lightPos.y, lightPos.z);
-
 		GLint mvpLoc = glGetUniformLocation(p.id, "mvp");
 		glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, &mvp[0][0]);
-
-		GLint tLoc = glGetUniformLocation(p.id, "tM");
-		glUniformMatrix4fv(tLoc, 1, GL_FALSE, &T[0][0]);
 
 		GLint mLoc = glGetUniformLocation(p.id, "mM");
 		glUniformMatrix4fv(mLoc, 1, GL_FALSE, &M[0][0]);
@@ -729,6 +699,33 @@ int main( const int argc, const char** argv ) {
 
 		GLint pLoc = glGetUniformLocation(p.id, "pM");
 		glUniformMatrix4fv(pLoc, 1, GL_FALSE, &P[0][0]);
+
+		GLint nsLoc = glGetUniformLocation(p.id, "Ns");
+		glUniform1f(nsLoc, Ns);
+
+		GLint kaLoc = glGetUniformLocation(p.id, "Ka");
+		glUniform3f(kaLoc, Ka[0], Ka[1], Ka[2]);
+
+		GLint kdLoc = glGetUniformLocation(p.id, "Kd");
+		glUniform3f(kdLoc, Kd[0], Kd[1], Kd[2]);
+
+		GLint ksLoc = glGetUniformLocation(p.id, "Ks");
+		glUniform3f(ksLoc, Ks[0], Ks[1], Ks[2]);
+
+		GLint keLoc = glGetUniformLocation(p.id, "Ke");
+		glUniform3f(keLoc, Ke[0], Ke[1], Ke[2]);
+
+		GLint niLoc = glGetUniformLocation(p.id, "Ni");
+		glUniform1f(niLoc, Ni);
+
+		GLint dLoc = glGetUniformLocation(p.id, "d");
+		glUniform1f(dLoc, d);
+
+		GLint illumLoc = glGetUniformLocation(p.id, "illum");
+		glUniform1f(illumLoc, illum);
+
+		GLint lightLoc = glGetUniformLocation(p.id, "lightPos");
+		glUniform3f(lightLoc, lightPos.x, lightPos.y, lightPos.z);
 
 		GLint aoBoolLoc = glGetUniformLocation(p.id, "ao_bool");
 		glUniform1i(aoBoolLoc, ao);

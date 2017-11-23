@@ -13,23 +13,23 @@
 
 ##############################################
 # Set up the project-specific options
-EXEC=triangle
+EXEC=453A3
 LIBS=`pkg-config --libs glfw3 gl`
 
 ##############################################
 # Tweak the compiler/debugger/profiler options
 CC=g++		# or nvcc, or clang++
 
-# DEBUG=-ggdb -Og	# (make debugging easier)
-DEBUG=-O2 		# (make execution faster)
+DEBUG=-ggdb -O0	# (make debugging easier)
+# DEBUG=-O2 		# (make execution faster)
 DEBUG_CMDLINE=
 
 # PROFILE=-pg -fprofile-arcs -ftest-coverage
 PROFILE=		# (disable profiling)
-PROFILE_CMDLINE=	# (any parameters needed?)
+PROFILE_CMDLINE=$(DEBUG_CMDLINE)
 
 #############################################
-# Set up the source directories 
+# Set up the source directories
 INCDIR=inc
 SRCDIR=src
 OBJDIR=obj
@@ -44,8 +44,8 @@ OBJECTS=$(addprefix $(OBJDIR)/,$(notdir $(SOURCES:.cpp=.o)))
 DEPS=$(OBJECTS:.o=.d)
 PROFS=$(OBJECTS:.o=.gcda) $(OBJECTS:.o=.gcno)
 
-LDFLAGS=$(DEBUG) $(PROFILE) $(LIBS) $(LIBDIRS)
-CFLAGS=$(DEBUG) $(PROFILE) -c -std=c++11 $(LIBDIRS) $(INCLUDES) -MMD -Wall -pipe
+LDFLAGS=$(DEBUG) $(PROFILE) $(LIBS)
+CFLAGS=$(DEBUG) $(PROFILE) -c -std=c++11 $(INCLUDES) -MMD -Wall -pipe
 EXECUTABLE=$(BINDIR)/$(EXEC)
 
 all:	$(EXECUTABLE)
@@ -68,4 +68,3 @@ $(EXECUTABLE): $(OBJECTS)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	$(CC) $(CFLAGS) $< -o $@
-

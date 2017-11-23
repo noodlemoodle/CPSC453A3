@@ -43,7 +43,7 @@ bool OBJmodel::readVertex() {
 	else if ( type == "vt" )
 		tex.push_back( { coords[0], coords[1], coords[2] } );
 	else
-		pos.push_back( { coords[0], coords[1], coords[2], coords[3] } );
+		pos.push_back( { coords[0], coords[1], coords[2], coords[3] } ); //fourth one used to be coords[3]
 
 	// otherwise, we're set
 	return true;
@@ -117,8 +117,7 @@ bool OBJmodel::readFace() {
 
 	}
 
-int getMaterials(string fp)
-{
+int getMaterials(string fp) {
     // 2
     int m = 0;
 
