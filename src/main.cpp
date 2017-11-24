@@ -1,4 +1,4 @@
-
+// cpsc 453 assignment 3 qiyue zhang 10131658
 
 #include <iostream>
 #include <fstream>
@@ -24,54 +24,42 @@ using namespace std;
 
 OBJmodel om;
 
+// window controls
 int windowWidth, windowHeight;
+bool closeWindow = false;
+
+// pointers for image loading
 unsigned char* pixels;
 unsigned char* pixels2;
 
+// vectors to hold obj coordinates
 vector<float> objVertices;
 vector<float> objTex;
 vector<float> objNorms;
 vector<float> materials;
 
-vector<float> vertices;
-
+// mvp+toCenter matrices
 glm::mat4 T, M, V, P;
 
+// perspective viewing controls
 float lookAtX = 0.0, lookAtY = 0.0, lookAtZ = 0.0;
 float camX = 5.0, camY = 5.0, camZ = 5.0;
 float zoom = 90.0;
 float up = 1.0;
 float upsideDown = false;
 
-//double prevCursorX, prevCursorY, offsetX, offsetY;
-double prevCamX = 0.4, prevCamY = 0.4, prevCamZ = 0.4;
-
+// object transformation controls
 float rollAngle = 0, pitchAngle = 0, yawAngle = 0;
 float translateX = 0.0, translateY = 0.0, translateZ = 0.0;
 float scale = 1.0;
 float objScale = 1.0;
 float cx = 0, cy = 0, cz = 0;
-//bool mouseButtonPressed = false;
-bool closeWindow = false;
-bool rightPress = false;
-bool leftPress = false;
-bool bothPress = false;
 
+// texture mapping controls
 int color = 1;
 int ao = 1;
 
-//donut materials
-// float Ns = 96.078431;
-// vector<float> Ka = {0.8, 0.8, 0.8};
-// vector<float> Kd = {0.64, 0.64, 0.64};
-// vector<float> Ks = {0.5, 0.5, 0.5};
-// vector<float> Ke = {0.0, 0.0, 0.0};
-// float Ni = 1.0;
-// float d = 1.0;
-// float illum = 2.0;
-
-bool CheckGLErrors();
-
+// light position
 glm::vec3 lightPos = glm::vec3(0, 0, 0);
 
 class Program {
@@ -255,6 +243,7 @@ struct Texture {
 
 }tex1, ao1;
 
+// read materials file, return a float vector
 vector<float> readMTL(string f) {
 	if(f.empty()) {
 		cerr << "ERROR: blank filename" << endl;
@@ -301,6 +290,7 @@ vector<float> readMTL(string f) {
 	return mtl;
 }
 
+// helper function for finding the transtations to center an object
 vector<float> findBound(vector<float> v) {
 	float tempMaxX = 0;
 	float tempMinX = 0;
@@ -337,6 +327,7 @@ vector<float> findBound(vector<float> v) {
 
 }
 
+// bing ao and color textures
 void initTextures(string f1, string f2, GLuint* textures, GLuint pid) {
 
 	glGenTextures(2, textures);
@@ -375,16 +366,15 @@ void initTextures(string f1, string f2, GLuint* textures, GLuint pid) {
 	glBindTextures(GL_TEXTURE_2D, 2, 0);
 }
 
+// load obj file
 bool initObj(string objFile) {
 	if(!om.load(objFile)) {
 		cout<<"failed"<<endl;
 		return false;
 	} else {
 		cout<<"done"<<endl;
-
 		for(uint tri = 0; tri < om.triangleCount(); tri++) {
 			for (uint vert = 0; vert < 3; vert++) {
-
 				objVertices.push_back(om[tri].vertex[vert].pos.x);
 				objVertices.push_back(om[tri].vertex[vert].pos.y);
 				objVertices.push_back(om[tri].vertex[vert].pos.z);
@@ -399,29 +389,11 @@ bool initObj(string objFile) {
 				objNorms.push_back(om[tri].vertex[vert].norm.z);
 			}
 		}
-
-		vector<float> xyBound = findBound(objVertices);
-		cout<<xyBound[0]<<"\t"<<xyBound[1]<<"\t"<<xyBound[2]<<"\t"<<xyBound[3]<<"\t"<<xyBound[4]<<"\t"<<xyBound[5]<<"\t"<<xyBound[6]<<"\t"<<xyBound[7]<<"\t"<<xyBound[8]<<endl;
-		//
-		// float  xmax = xyBound[1], ymax = xyBound[3], xmin = xyBound[0], ymin = xyBound[2],
-		// 	zmax = xyBound[5], zmin = xyBound[4], centerX = xyBound[6], centerY = xyBound[7], centerZ = xyBound[8];
-		//
-		// float ratio = fmax(fmax(xmax - xmin, ymax - ymin), zmax - zmin); //make xyz min max globals to reset
-		//
-		// for(uint i = 0; i < objVertices.size(); i+=4) {
-		//  	objVertices[i] = ((objVertices[i] - centerX)/ratio);
-		//  	objVertices[i+1] = ((objVertices[i+1] - centerY)/ratio);
-		// 	objVertices[i+2] = ((objVertices[i+2] - centerZ)/ratio);
-		// }
-		//
-		//  xyBound = findBound(objVertices);
-		//  cout<<xyBound[0]<<"\t"<<xyBound[1]<<"\t"<<xyBound[2]<<"\t"<<xyBound[3]<<"\t"<<xyBound[4]<<"\t"<<xyBound[5]<<"\t"<<xyBound[6]<<"\t"<<xyBound[7]<<"\t"<<xyBound[8]<<endl;
 		return true;
 	}
-
-
 }
 
+// bind object materials
 void bindMaterials(GLuint pid, string mtlFile) {
 	glUseProgram(pid);
 	materials = readMTL(mtlFile);
@@ -451,6 +423,7 @@ void bindMaterials(GLuint pid, string mtlFile) {
 
 }
 
+// render object
 void render(GLuint pid, VertexArray va, GLuint* textures) {
 	glClearColor(0.0f, 0.0f, 0.2f, 1.0f);
 	glEnable(GL_DEPTH_TEST);
@@ -466,6 +439,7 @@ void render(GLuint pid, VertexArray va, GLuint* textures) {
 
 }
 
+// initialize object vertex array
 void display(GLuint pid, GLuint* textures) {
 
 	VertexArray obj(objVertices.size()/4);
@@ -477,6 +451,7 @@ void display(GLuint pid, GLuint* textures) {
 	render(pid, obj, textures);
 }
 
+// key callback
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 
 	// close window
@@ -567,6 +542,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 }
 
+// get matrix for centering and scaling object to window
 glm::mat4 getT() {
 	vector<float> v = findBound(objVertices);
 	cx = v[6]; cy = v[7]; cz = v[8];
@@ -579,58 +555,31 @@ glm::mat4 getT() {
 	glm::mat4 RotateY = glm::rotate(glm::mat4(1.0f), pitchAngle, glm::vec3(0, 1, 0));
 	glm::mat4 RotateZ = glm::rotate(glm::mat4(1.0f), yawAngle, glm::vec3(0, 0, 1));
 
-	// print matrices
-		// cout<<"SCALE"<<endl;
-		// cout<<Scale[0][0]<<"\t"<<Scale[1][0]<<"\t"<<Scale[2][0]<<"\t"<<Scale[3][0]<<endl
-		// 	<<Scale[0][1]<<"\t"<<Scale[1][1]<<"\t"<<Scale[2][1]<<"\t"<<Scale[3][1]<<endl
-		// 	<<Scale[0][2]<<"\t"<<Scale[1][2]<<"\t"<<Scale[2][2]<<"\t"<<Scale[3][2]<<endl
-		// 	<<Scale[0][3]<<"\t"<<Scale[1][3]<<"\t"<<Scale[2][3]<<"\t"<<Scale[3][3]<<endl;
-		//
-		// cout<<"ROTATE X"<<"\t"<<rollAngle<<endl;
-		// cout<<RotateX[0][0]<<"\t"<<RotateX[1][0]<<"\t"<<RotateX[2][0]<<"\t"<<RotateX[3][0]<<endl
-		// 	<<RotateX[0][1]<<"\t"<<RotateX[1][1]<<"\t"<<RotateX[2][1]<<"\t"<<RotateX[3][1]<<endl
-		// 	<<RotateX[0][2]<<"\t"<<RotateX[1][2]<<"\t"<<RotateX[2][2]<<"\t"<<RotateX[3][2]<<endl
-		// 	<<RotateX[0][3]<<"\t"<<RotateX[1][3]<<"\t"<<RotateX[2][3]<<"\t"<<RotateX[3][3]<<endl;
-		//
-		// cout<<"ROTATE Y"<<"\t"<<pitchAngle<<endl;
-		// cout<<RotateY[0][0]<<"\t"<<RotateY[1][0]<<"\t"<<RotateY[2][0]<<"\t"<<RotateY[3][0]<<endl
-		// 	<<RotateY[0][1]<<"\t"<<RotateY[1][1]<<"\t"<<RotateY[2][1]<<"\t"<<RotateY[3][1]<<endl
-		// 	<<RotateY[0][2]<<"\t"<<RotateY[1][2]<<"\t"<<RotateY[2][2]<<"\t"<<RotateY[3][2]<<endl
-		// 	<<RotateY[0][3]<<"\t"<<RotateY[1][3]<<"\t"<<RotateY[2][3]<<"\t"<<RotateY[3][3]<<endl;
-		//
-		// cout<<"ROTATE Z"<<"\t"<<yawAngle<<endl;
-		// cout<<RotateZ[0][0]<<"\t"<<RotateZ[1][0]<<"\t"<<RotateZ[2][0]<<"\t"<<RotateZ[3][0]<<endl
-		// 	<<RotateZ[0][1]<<"\t"<<RotateZ[1][1]<<"\t"<<RotateZ[2][1]<<"\t"<<RotateZ[3][1]<<endl
-		// 	<<RotateZ[0][2]<<"\t"<<RotateZ[1][2]<<"\t"<<RotateZ[2][2]<<"\t"<<RotateZ[3][2]<<endl
-		// 	<<RotateZ[0][3]<<"\t"<<RotateZ[1][3]<<"\t"<<RotateZ[2][3]<<"\t"<<RotateZ[3][3]<<endl;
-		//
-		// cout<<"TRANSLATE"<<endl;
-		// cout<<Translate[0][0]<<"\t"<<Translate[1][0]<<"\t"<<Translate[2][0]<<"\t"<<Translate[3][0]<<endl
-		// 	<<Translate[0][1]<<"\t"<<Translate[1][1]<<"\t"<<Translate[2][1]<<"\t"<<Translate[3][1]<<endl
-		// 	<<Translate[0][2]<<"\t"<<Translate[1][2]<<"\t"<<Translate[2][2]<<"\t"<<Translate[3][2]<<endl
-		// 	<<Translate[0][3]<<"\t"<<Translate[1][3]<<"\t"<<Translate[2][3]<<"\t"<<Translate[3][3]<<endl;
-
 	glm::mat4 Transform = Scale*RotateZ*RotateY*RotateX*Translate;
 	return Transform;
 }
 
+// get object model matrix
 glm::mat4 getM() {
 	glm::mat4 Scale = glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, scale));
 	glm::mat4 Translate = glm::translate(glm::mat4(1.0f), glm::vec3(translateX, translateY, translateZ));
 	return Scale*Translate;
 }
 
+// get view matrix
 glm::mat4 getV() {
 	up = upsideDown? -1.0 : 1.0;
 	return glm::lookAt(glm::vec3(camX, camY, camZ), glm::vec3(lookAtX, lookAtY, lookAtZ), glm::vec3(0.0, up, 0.0));
 }
 
+// get projection matrix
 glm::mat4 getP() {
 	return glm::perspective(glm::radians(zoom), (float)((float)windowWidth/(float)windowHeight), 0.1f, 100.0f);
 }
 
 int main( const int argc, const char** argv ) {
 
+	// takes in exactly 4 commandline arguments
 	if (argc != 5) {
 
 		cout << " USAGE: " << argv[0] << " [objFile.obj] [objColor.png] [objAo.png] [objMaterials.mtl] " << endl;
@@ -639,7 +588,6 @@ int main( const int argc, const char** argv ) {
 	for(uint i = 0; i < 4; i++) {
 		cout << "- Loading " << argv[i+1] << "..";
 	}
-
 
 	if (!glfwInit()) {
 			cout << "ERROR: GLFW failed to initialize, TERMINATING" << endl;
@@ -665,38 +613,10 @@ int main( const int argc, const char** argv ) {
 
 	Program p("data/vertex.glsl", "data/fragment.glsl");
 	glUseProgram(p.id);
-	// initTexture("donutColorPlain.png", p.id);
-	// readAo("donutAo.png", p.id);
 	GLuint textures[2];
 	initTextures(argv[2], argv[3], textures, p.id);
 	initObj(argv[1]);
 	bindMaterials(p.id, argv[4]);
-	//
-	// GLint nsLoc = glGetUniformLocation(p.id, "Ns");
-	// glUniform1f(nsLoc, Ns);
-	//
-	// GLint kaLoc = glGetUniformLocation(p.id, "Ka");
-	// glUniform3f(kaLoc, Ka[0], Ka[1], Ka[2]);
-	//
-	// GLint kdLoc = glGetUniformLocation(p.id, "Kd");
-	// glUniform3f(kdLoc, Kd[0], Kd[1], Kd[2]);
-	//
-	// GLint ksLoc = glGetUniformLocation(p.id, "Ks");
-	// glUniform3f(ksLoc, Ks[0], Ks[1], Ks[2]);
-	//
-	// GLint keLoc = glGetUniformLocation(p.id, "Ke");
-	// glUniform3f(keLoc, Ke[0], Ke[1], Ke[2]);
-	//
-	// GLint niLoc = glGetUniformLocation(p.id, "Ni");
-	// glUniform1f(niLoc, Ni);
-	//
-	// GLint dLoc = glGetUniformLocation(p.id, "d");
-	// glUniform1f(dLoc, d);
-	//
-	// GLint illumLoc = glGetUniformLocation(p.id, "illum");
-	// glUniform1f(illumLoc, illum);
-
-
 
 	while(!glfwWindowShouldClose(window)) {
 
@@ -751,27 +671,4 @@ int main( const int argc, const char** argv ) {
 	cout << "bui bui" << endl;
 	return 0;
 
-}
-
-bool CheckGLErrors() {
-	bool error = false;
-	for (GLenum flag = glGetError(); flag != GL_NO_ERROR; flag = glGetError()) {
-		cout << "OpenGL ERROR:  ";
-		switch (flag) {
-			case GL_INVALID_ENUM:
-			cout << "GL_INVALID_ENUM" << endl; break;
-			case GL_INVALID_VALUE:
-			cout << "GL_INVALID_VALUE" << endl; break;
-			case GL_INVALID_OPERATION:
-			cout << "GL_INVALID_OPERATION" << endl; break;
-			case GL_INVALID_FRAMEBUFFER_OPERATION:
-			cout << "GL_INVALID_FRAMEBUFFER_OPERATION" << endl; break;
-			case GL_OUT_OF_MEMORY:
-			cout << "GL_OUT_OF_MEMORY" << endl; break;
-			default:
-			cout << "[unknown error code]" << endl;
-		}
-		error = true;
-	}
-	return error;
 }

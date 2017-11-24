@@ -25,6 +25,7 @@ using namespace std;
 OBJmodel om;
 
 int windowWidth, windowHeight;
+bool closeWindow = false;
 unsigned char* pixels;
 unsigned char* pixels2;
 
@@ -40,15 +41,12 @@ float zoom = 90.0;
 float up = 1.0;
 float upsideDown = false;
 
-//double prevCursorX, prevCursorY, offsetX, offsetY;
 double prevCamX = 0.4, prevCamY = 0.4, prevCamZ = 0.4;
 
 float rollAngle = 0, pitchAngle = 0, yawAngle = 0;
 float translateX = 0.0, translateY = 0.0, translateZ = 0.0;
 float scale = 1.0;
 
-//bool mouseButtonPressed = false;
-bool closeWindow = false;
 bool rightPress = false;
 bool leftPress = false;
 bool bothPress = false;
